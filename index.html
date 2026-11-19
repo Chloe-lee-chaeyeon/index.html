@@ -1,39 +1,459 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>무인체계 프롬프트 빌더 | Markdown 불러오기</title><style>
-:root{color-scheme:dark;--bg:#0a1220;--panel:#142033;--panel2:#1b2c43;--line:#35465b;--text:#edf4fc;--muted:#a2b4c8;--accent:#62c8ef}*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#0e2937,var(--bg) 45%);color:var(--text);font:15px/1.5 system-ui,'Malgun Gothic',sans-serif}header{max-width:1250px;margin:auto;padding:30px 18px 16px}h1{font-size:clamp(23px,3vw,34px);margin:0 0 6px}p{margin:5px 0;color:var(--muted)}main{max-width:1250px;margin:0 auto;padding:10px 18px 55px;display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,.8fr);gap:18px}.panel{border:1px solid var(--line);background:var(--panel);border-radius:15px;overflow:hidden}.pad{padding:19px}.panel h2{font-size:18px;margin:0 0 9px}.top{border-bottom:1px solid var(--line)}button,.file-btn{cursor:pointer;border:1px solid #52718e;background:#223b55;border-radius:9px;padding:10px 13px;color:var(--text);font:600 13px system-ui,'Malgun Gothic',sans-serif;display:inline-block}button:hover,.file-btn:hover{background:#315376}.primary{background:#176d99;border-color:#4cb5df}.danger{background:#512b36}input[type=file]{display:none}.buttonline{display:flex;flex-wrap:wrap;gap:8px;margin:11px 0}.hint{font-size:12px;color:var(--muted)}.status{font-size:13px;color:#9de6d2;min-height:21px;margin:8px 0}.section{border-top:1px solid var(--line)}summary{cursor:pointer;padding:15px 18px;display:flex;justify-content:space-between;gap:6px;font-weight:700}summary:hover{background:#23374c}.count{color:var(--accent);font-size:12px}.options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 15px 16px}.opt{background:var(--panel2);border-radius:8px;padding:9px;display:flex;align-items:flex-start;gap:7px;font-size:13px}.opt input{accent-color:var(--accent);margin-top:3px}.right{align-self:start;position:sticky;top:10px}textarea{width:100%;background:#0b1523;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px;font:13px/1.6 ui-monospace,Consolas,'Malgun Gothic',monospace;resize:vertical}.prompt{height:425px}.notes{height:85px}label.title{font-weight:700;display:block;margin:12px 0 7px}.drop{border:1px dashed #78a3c2;border-radius:10px;padding:12px;margin-top:12px;background:#192f43}.drop.drag{background:#234b60}.info{background:#172c40;padding:10px;border-radius:8px;font-size:12px;color:#d5e4f2}code{color:#a6ddfa}.mini{font-size:12px;color:var(--muted)}@media(max-width:850px){main{grid-template-columns:1fr}.right{position:static}.options{grid-template-columns:1fr}}
-</style></head><body><header><h1>무인체계 프롬프트 빌더</h1><p>7단계 구조 · 기본 140개 키워드 · 사용자 Markdown 업로드 · 오프라인 사용</p></header><main><section class="panel"><div class="pad top"><h2>1. Markdown 키워드 불러오기</h2><p class="mini">MD 파일의 단계별 제목과 목록 또는 표를 분석하여 선택지를 자동 생성합니다.</p><div id="drop" class="drop"><label class="file-btn primary" for="mdInput">📄 MD 파일 선택</label><input id="mdInput" type="file" accept=".md,.markdown,text/markdown,text/plain"><span class="mini"> 또는 MD 파일을 이곳에 끌어 놓으세요</span></div><div class="buttonline"><button id="merge">추가 모드 ✓</button><button id="replace">교체 모드</button><button id="restore">기본 키워드 복원</button></div><div class="info">**추가:** 기존 키워드를 유지하며 새 키워드만 추가. **교체:** MD에 해당 단계가 있으면 그 단계의 키워드 목록을 교체. 인식되지 않은 제목과 일반 문장은 자동 선택지로 추가하지 않습니다.</div><div class="status" id="status" role="status"></div><div class="buttonline"><button id="exportMD">현재 키워드 MD 저장</button><button id="exportJSON">설정 JSON 백업</button><label class="file-btn" for="jsonInput">설정 JSON 복원</label><input id="jsonInput" type="file" accept=".json,application/json"></div></div><div class="pad"><h2>2. 키워드 선택</h2><p class="mini">원하는 항목을 클릭하면 오른쪽의 프롬프트가 갱신됩니다.</p></div><div id="sections"></div></section><aside class="panel right"><div class="pad"><h2>3. 완성 프롬프트</h2><div id="count" class="mini"></div><label class="title" for="notes">추가 지시</label><textarea class="notes" id="notes" placeholder="예: 기체는 4개 로터로 고정, 석양의 산악 지형"></textarea><label class="title" for="result">자동 생성 내용 (직접 편집 가능)</label><textarea class="prompt" id="result" spellcheck="false"></textarea><div class="buttonline"><button class="primary" id="copy">복사</button><button id="saveTXT">TXT 저장</button><button id="saveMD">프롬프트 MD 저장</button><button id="regenerate">다시 생성</button></div><div class="buttonline"><button id="savePreset">프리셋 저장</button><button id="loadPreset">프리셋 불러오기</button><button id="clear" class="danger">선택 초기화</button></div><p class="hint">모든 읽기·저장·문장 조합은 브라우저에서 처리되어 ChatGPT 토큰을 사용하지 않습니다. 실제 AI 이미지 생성에는 별도 사용량이 발생할 수 있습니다. 중요 설정은 JSON 백업을 권장합니다.</p></div></aside></main>
-<script>
-'use strict';
-const defaults=[["Role", "AI 역할 정의", "방산 전문가의 제작 관점", ["방위산업 아트 디렉터", "군사 전문 사진작가", "시네마틱 촬영 감독", "무인체계 디자인 전문가", "군용 드론 시각화 전문가", "군사 다큐멘터리 감독", "군사 장비 기술 일러스트레이터", "국방기술 홍보 디자이너", "사실주의 3D 아티스트", "특수효과(VFX) 감독", "항공우주 시각화 전문가", "밀리터리 콘셉트 아티스트", "디지털 트윈 시각화 전문가", "국방 홍보영상 감독", "산업제품 전문 사진작가", "3D 하드서피스 아티스트", "전술환경 시각화 전문가", "항공 촬영 전문가", "군사 시뮬레이션 디자이너", "포토리얼리즘 렌더링 전문가"]], ["Context", "제작 목적", "콘텐츠 활용 맥락", ["대한민국 방위산업 홍보", "유튜브 쇼츠 콘텐츠", "무인체계 기술 소개", "국방 전시회 홍보", "군용 드론 운용 소개", "국방 혁신 기술 소개", "차세대 무인체계 소개", "무인전력 운용 시각화", "군사장비 제품 소개", "방위산업 홍보 포스터", "군사기술 다큐멘터리", "미래 전장 콘셉트 소개", "국방 연구개발 홍보", "방산기업 브랜드 영상", "군사훈련 기록 영상", "방산 수출 홍보 콘텐츠", "첨단 감시정찰체계 소개", "국방 AI 기술 소개", "유무인 복합체계 소개", "미래 국방 비전 영상"]], ["Subject", "무인체계", "장비 종류와 핵심 형상", ["쿼드콥터 정찰 드론", "헥사콥터 드론", "옥토콥터 드론", "고정익 정찰 무인기", "수직이착륙(VTOL) 무인기", "틸트로터 무인기", "장기체공 정찰 무인기", "소형 전술 정찰 드론", "군집형 소형 드론", "유선 전원 공급 드론", "차륜형 무인지상차량", "궤도형 무인지상차량", "무인 수색 로봇", "폭발물 처리 로봇", "무인 군수지원 차량", "정찰용 무인수상정", "해양 감시 무인수상정", "자율항해 무인수상정", "무인잠수정(UUV)", "수중 탐색 로봇"]], ["Scene", "임무·환경", "장면에서 수행하는 행동", ["산악지역 정찰", "국경지역 감시", "군사시설 외곽 감시", "도심지역 정찰", "야간 정찰 비행", "열화상 탐색", "실종자 수색", "재난지역 탐색", "지상 기동 정찰", "군수물자 수송", "해상 경계 순찰", "해안선 정찰", "항만시설 감시", "해저 탐색", "수중 지형 조사", "무인체계 합동훈련", "이륙 준비", "수직이착륙", "기지 복귀", "작전지역 순찰"]], ["Visual", "촬영·연출", "카메라·조명·질감", ["정면 클로즈업", "측면 프로필샷", "후방 45도 시점", "상공 하이앵글", "저각도 로우앵글", "광각 와이드샷", "초근접 디테일샷", "항공 추적 촬영", "역동적인 대각선 구도", "중앙 대칭 구도", "황금빛 노을 조명", "푸른 새벽 조명", "야간 저조도 조명", "안개 속 역광", "극적인 명암 대비", "사실적인 금속 질감", "자연스러운 모션 블러", "시네마틱 컬러 그레이딩", "포토리얼리즘", "얕은 피사계 심도"]], ["Constraints", "제약 조건", "발생하지 않아야 할 오류", ["지정한 무인체계 유형 유지", "프로펠러 개수 정확히 유지", "고정익 항공기로 형태 변경 금지", "헬리콥터 형태로 변경 금지", "추가적인 날개 생성 금지", "불필요한 로터 추가 금지", "기체 하단 센서 위치 유지", "원본 기체 색상 유지", "비현실적인 SF 디자인 제외", "과도한 무장 장착 제외", "실제 구조와 어긋나는 부품 제외", "불필요한 HUD 인터페이스 제외", "과도한 렌즈 플레어 제외", "불필요한 인물 생성 금지", "문자 및 자막 생성 금지", "워터마크 및 임의 로고 제외", "배경에 중복 기체 생성 금지", "주요 구성 요소 화면 잘림 방지", "여러 장면에서 동일한 기체 디자인 유지", "여러 이미지를 한 장의 콜라주로 합치지 않기"]], ["Output", "출력·검증", "형식과 확인할 기준", ["9:16 세로형 쇼츠 이미지", "16:9 가로형 홍보 이미지", "1:1 정사각형 이미지", "4:5 세로형 홍보 이미지", "1080×1920 출력 목표", "고해상도 실사 이미지", "독립 이미지 1장 생성", "독립 이미지 2장 생성", "연속 장면 3장 생성", "동일한 기체 외형 유지", "동일한 배경 분위기 유지", "동일한 색상 및 소재 유지", "장면별 카메라 시점 변경", "장면별 단일 행동 표현", "구동부 형태 및 개수 검증", "센서와 구성 요소 위치 검증", "물리적으로 자연스러운 자세 검증", "기체 전체의 가시성 검증", "영상 간 연결성 검증", "글자와 워터마크 유무 검증"]]], initial={"Role": ["군용 드론 시각화 전문가"], "Context": ["군용 드론 운용 소개", "유튜브 쇼츠 콘텐츠"], "Subject": ["소형 전술 정찰 드론"], "Scene": ["군사시설 외곽 감시"], "Visual": ["상공 하이앵글", "황금빛 노을 조명", "포토리얼리즘"], "Constraints": ["지정한 무인체계 유형 유지", "고정익 항공기로 형태 변경 금지"], "Output": ["9:16 세로형 쇼츠 이미지", "동일한 배경 분위기 유지"]}, K='uxs_md_prompt_builder_v1';
-const mapping={Role:['role','역할','ai 역할','ai 역할 정의'],Context:['context','제작 목적','목적','제작 목적 및 맥락','활용 목적'],Subject:['subject','무인체계','피사체','무인체계 피사체 정의'],Scene:['scene','임무','환경','임무 및 환경','임무 및 작전 환경'],Visual:['visual','시각적 연출','카메라','촬영','카메라 및 시각적 연출'],Constraints:['constraints','제약','제약 조건'],Output:['output','validation','출력','검증','출력 및 품질 검증','출력 및 검증']};
-const $=id=>document.getElementById(id);
-const fresh=()=>({sections:structuredClone(defaults),selected:structuredClone(initial),notes:'',mode:'merge'});
-let state=fresh();try{const saved=JSON.parse(localStorage.getItem(K)||'null');if(saved&&Array.isArray(saved.sections)&&saved.selected)state=saved;}catch(e){}
-function persist(){try{localStorage.setItem(K,JSON.stringify(state))}catch(e){notice('브라우저 저장 공간이 부족합니다. JSON 백업을 권장합니다.')}}
-function notice(msg){$('status').textContent=msg}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function render(){const prev=Array.from($('sections').querySelectorAll('details')).map((x,i)=>x.open?i:-1);$('sections').innerHTML='';state.sections.forEach(([key,title,description,items],i)=>{const details=document.createElement('details');details.className='section';details.open=prev.length?prev.includes(i):i===2;const summary=document.createElement('summary');summary.innerHTML=`<span>${esc(title)} <span class="mini">${esc(description)}</span></span><span class="count" id="count_${key}"></span>`;details.append(summary);const wrap=document.createElement('div');wrap.className='options';items.forEach(item=>{const label=document.createElement('label');label.className='opt';const cb=document.createElement('input');cb.type='checkbox';cb.checked=(state.selected[key]||[]).includes(item);cb.addEventListener('change',()=>{const set=new Set(state.selected[key]||[]);cb.checked?set.add(item):set.delete(item);state.selected[key]=[...set];persist();refresh()});label.append(cb,document.createTextNode(item));wrap.append(label)});details.append(wrap);$('sections').append(details)});$('notes').value=state.notes||'';refresh()}
-function compose(){const labels={Context:'제작 목적',Subject:'무인체계',Scene:'임무 및 환경',Visual:'카메라 및 시각적 연출',Constraints:'제약 조건',Output:'출력 및 검증'};const lines=[];if((state.selected.Role||[]).length)lines.push('당신은 '+state.selected.Role.join(', ')+' 역할을 수행한다.');for(const [key,label] of Object.entries(labels)){const words=state.selected[key]||[];if(words.length)lines.push('['+label+']\n'+words.map(w=>'- '+w).join('\n'))}if((state.notes||'').trim())lines.push('[추가 지시]\n'+state.notes.trim());lines.push('선택된 조건에 따라 사실적이고 시네마틱한 무인체계 이미지를 생성한다. 플랫폼 구조를 우선하며 장면과 촬영 구도가 자연스럽게 드러나도록 한다.');return lines.join('\n\n')}
-function refresh(){for(const [key,,,items] of state.sections){const el=$('count_'+key);if(el)el.textContent=(state.selected[key]||[]).length+' / '+items.length} $('count').textContent=Object.values(state.selected).reduce((n,a)=>n+a.length,0)+'개 선택됨';$('result').value=compose()}
-function normalize(s){return s.toLowerCase().replace(/^[0-9①②③④⑤⑥⑦⑧⑨]+[.\)\s-]*/g,'').replace(/[—–-]/g,' ').replace(/[·:()\[\]（）]/g,' ').replace(/\s+/g,' ').trim()}
-function identify(text){const heading=normalize(text);for(const [key,names] of Object.entries(mapping)){if(names.some(n=>heading===normalize(n)||heading.startsWith(normalize(n)+' ')||heading.endsWith(' '+normalize(n))))return key;}return null}
-function extractMD(content){const result={};let active=null,table=false;for(const raw of content.replace(/\r/g,'').split('\n')){let line=raw.trim();if(!line)continue;const heading=line.match(/^#{1,6}\s+(.+)$/);if(heading){active=identify(heading[1]);table=false;continue}const bold=line.match(/^\*\*([^*]+)\*\*\s*:?$/);if(bold){let identified=identify(bold[1]);if(identified){active=identified;table=false;continue}}if(!active)continue;let term=null;if(line.startsWith('|')){const cols=line.split('|').map(x=>x.trim()).filter(Boolean);if(cols.length&&cols.every(x=>/^:?-+:?$/.test(x)))continue;if(cols.length>=2){term=/^\d+$/.test(cols[0])?cols[1]:cols.at(-1);}table=true}else{const bullet=line.match(/^(?:[-*+]\s+|\d{1,3}[.)]\s+)(.+)$/);if(bullet){term=bullet[1];table=false}else if(table){table=false}}
-if(!term)continue;term=term.replace(/^\*\*(.*?)\*\*$/,'$1').replace(/`/g,'').trim();if(!term||term.length>160||/^(번호|선택(?: 키워드| 제약 조건)?|키워드|설명|항목)$/.test(term))continue;(result[active]??=[]).push(term)}for(const k in result)result[k]=[...new Set(result[k])];return result}
-function importMarkdown(text){const found=extractMD(text);const populated=Object.entries(found).filter(([,a])=>a.length);if(!populated.length){notice('인식된 키워드가 없습니다. 예: ### ③ Subject — 무인체계 다음에 - 드론 또는 | 1 | 드론 | 목록을 작성하세요.');return}let total=0;for(const [key,values] of populated){let section=state.sections.find(s=>s[0]===key);if(!section)continue;const before=section[3];const after=state.mode==='replace'?values:[...new Set([...before,...values])];section[3]=after;total+=state.mode==='replace'?after.length:after.length-before.length;if(state.mode==='replace')state.selected[key]=(state.selected[key]||[]).filter(v=>after.includes(v))}persist();render();notice(`${populated.length}개 영역에서 ${total}개 항목 ${state.mode==='replace'?'교체':'추가'} 완료. 기존 선택은 가능한 한 유지했습니다.`)}
-async function readMD(file){if(!file)return;const text=await file.text();if(text.length>1_500_000){notice('파일 크기가 너무 큽니다 (1.5MB 이하 권장).');return}importMarkdown(text)}
-$('mdInput').addEventListener('change',async e=>{await readMD(e.target.files[0]);e.target.value=''});
-const drop=$('drop');['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',async e=>{const f=e.dataTransfer.files[0];if(f&&/\.(md|markdown|txt)$/i.test(f.name))await readMD(f);else notice('MD 파일을 선택해 주세요.')});
-function mode(m){state.mode=m;$('merge').textContent=m==='merge'?'추가 모드 ✓':'추가 모드';$('replace').textContent=m==='replace'?'교체 모드 ✓':'교체 모드';persist()}
-$('merge').onclick=()=>mode('merge');$('replace').onclick=()=>mode('replace');mode(state.mode||'merge');
-$('restore').onclick=()=>{if(!confirm('키워드 목록을 기본 140개로 복원할까요?'))return;state.sections=structuredClone(defaults);for(const [key,,,items] of state.sections)state.selected[key]=(state.selected[key]||[]).filter(v=>items.includes(v));persist();render();notice('기본 140개 키워드로 복원했습니다.')};
-$('notes').oninput=e=>{state.notes=e.target.value;persist();refresh()};$('regenerate').onclick=()=>{refresh();notice('프롬프트를 재생성했습니다.')};
-function download(name,contents,mime){const url=URL.createObjectURL(new Blob([contents],{type:mime}));const anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}
-$('exportMD').onclick=()=>download('무인체계_키워드.md',state.sections.map(([key,title,,items],i)=>`### ${i+1}. ${key} — ${title}\n\n${items.map(x=>'- '+x).join('\n')}`).join('\n\n'),'text/markdown;charset=utf-8');
-$('exportJSON').onclick=()=>download('무인체계_빌더_설정.json',JSON.stringify(state,null,2),'application/json;charset=utf-8');
-$('jsonInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const obj=JSON.parse(await file.text());if(!Array.isArray(obj.sections)||!obj.sections.every(s=>Array.isArray(s)&&typeof s[0]==='string'&&Array.isArray(s[3]))||!obj.selected)throw Error('형식 오류');state=obj;persist();render();mode(state.mode||'merge');notice('JSON 설정을 복원했습니다.')}catch(err){notice('올바른 설정 JSON 파일이 아닙니다.')}e.target.value=''};
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('result').value);notice('프롬프트를 복사했습니다.')}catch(e){$('result').select();notice('클립보드 접근이 제한되어 텍스트를 선택했습니다. Ctrl+C를 누르세요.')}};
-$('saveTXT').onclick=()=>download('무인체계_프롬프트.txt',$('result').value,'text/plain;charset=utf-8');$('saveMD').onclick=()=>download('무인체계_프롬프트.md','# 무인체계 이미지 프롬프트\n\n'+$('result').value,'text/markdown;charset=utf-8');
-$('clear').onclick=()=>{if(!confirm('현재 선택을 모두 해제할까요?'))return;state.selected=Object.fromEntries(state.sections.map(x=>[x[0],[]]));persist();render()};
-$('savePreset').onclick=()=>{const name=prompt('프리셋 이름');if(!name)return;const saved=JSON.parse(localStorage.getItem(K+'_presets')||'{}');saved[name]=structuredClone(state);localStorage.setItem(K+'_presets',JSON.stringify(saved));notice('프리셋 저장: '+name)};
-$('loadPreset').onclick=()=>{const saved=JSON.parse(localStorage.getItem(K+'_presets')||'{}');const names=Object.keys(saved);if(!names.length){notice('저장된 프리셋이 없습니다.');return}const name=prompt('프리셋 이름\n'+names.join('\n'),names[0]);if(name&&saved[name]){state=structuredClone(saved[name]);persist();render();mode(state.mode||'merge');notice('프리셋 불러옴: '+name)}};
-render();
-</script></body></html>
+<!DOCTYPE html>
+<html class="dark" lang="ko"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=JetBrains+Mono:wght@100..900&amp;family=Space+Grotesk:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-tertiary-fixed-variant":"#394859","status-hold":"#FFD600","surface-bright":"#2e3a4d","error-container":"#93000a","surface-container":"#132032","on-primary-container":"#00626e","surface-deep":"#040B16","tertiary-fixed-dim":"#b9c8dd","tertiary-container":"#c3d2e7","surface-variant":"#293549","on-error":"#690005","surface-dim":"#071426","status-abort":"#FF3D00","primary":"#c3f5ff","tactical-white":"#F4F8FC","inverse-surface":"#d6e3fc","secondary":"#aec6ff","inverse-on-surface":"#253144","surface-container-lowest":"#020e20","titanium-border":"#1E3B66","secondary-container":"#4e8eff","inverse-primary":"#006875","background":"#071426","on-surface":"#d6e3fc","primary-fixed-dim":"#00daf3","on-secondary-fixed-variant":"#004395","on-primary-fixed-variant":"#004f58","on-secondary-container":"#00275d","tertiary":"#e2eeff","surface-container-low":"#0f1c2e","surface":"#071426","on-tertiary-container":"#4c5a6c","outline-variant":"#3b494c","outline":"#849396","primary-fixed":"#9cf0ff","status-go":"#00E676","secondary-fixed-dim":"#aec6ff","on-background":"#d6e3fc","secondary-fixed":"#d8e2ff","on-primary-fixed":"#001f24","on-secondary":"#002e6a","on-tertiary":"#233242","surface-container-highest":"#293549","primary-container":"#00e5ff","on-surface-variant":"#bac9cc","surface-tint":"#00daf3","error":"#ffb4ab","surface-submerged":"#0F284B","tertiary-fixed":"#d4e4fa","on-secondary-fixed":"#001a42","surface-container-high":"#1e2a3d","surface-deck":"#0B1E38","on-error-container":"#ffdad6","on-primary":"#00363d","on-tertiary-fixed":"#0d1d2c"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter":"1.5rem","margin-mobile":"1.25rem","space-xs":"0.25rem","gutter-sm":"1rem","space-sm":"0.5rem","space-md":"1rem","margin":"3rem","space-xl":"2.5rem","space-lg":"1.5rem"},fontFamily:{"label-lg":["JetBrains Mono"],"headline-xl":["Space Grotesk"],"body-lg":["Geist"],"headline-lg":["Space Grotesk"],"label-sm":["JetBrains Mono"],"label-md":["JetBrains Mono"],"headline-md":["Space Grotesk"],"body-md":["Geist"],"headline-xl-mobile":["Space Grotesk"],"headline-sm":["Space Grotesk"],"headline-lg-mobile":["Space Grotesk"],"body-sm":["Geist"]},fontSize:{"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"headline-xl":["48px",{"lineHeight":"56px","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-lg":["36px",{"lineHeight":"44px","fontWeight":"600"}],"label-sm":["10px",{"lineHeight":"14px","fontWeight":"500"}],"label-md":["12px",{"lineHeight":"16px","fontWeight":"500"}],"headline-md":["24px",{"lineHeight":"32px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","fontWeight":"400"}],"headline-xl-mobile":["32px",{"lineHeight":"40px","fontWeight":"700"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"500"}],"headline-lg-mobile":["26px",{"lineHeight":"34px","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}]}}}};</script><style>html { scroll-behavior: smooth; } #striker-360 {scroll-margin-top:90px;} @media(max-width:640px){#striker-360 iframe{height:850px!important;}}</style></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary"><header class="fixed top-0 left-0 w-full z-50 bg-surface-deep/90 backdrop-blur-xl border-b border-titanium-border/40"><div class="h-20 w-full px-margin-mobile lg:px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><a class="flex items-center gap-space-sm focus:outline-none" data-path="overview" href="#"><img alt="K-Defense Navy Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/ALJJyrAj8kT8IsBM50LAbvZcGzjXYDDEMY4lH1JxD1M0y69g889Ea1VqKdtAIo0oRd_ASz6nQRZNUpjAuekAOSDLD1JAVPgCsgEZul36pTMPBzG6J5DNb1eJxOjgBl6mDpxjGgGWbruT_2Tffbi7PJGusTEyj7vDeVTvHDRKK7iOOcwuTjeS3_CtqlLeJf_0rke2uoU8VZM-qrABdRitBPS_wlKavuez9Y_zWpB1d9zA0uAILw"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm uppercase tracking-wider text-tactical-white font-bold leading-none">K-DEFENSE</span><span class="font-label-sm text-label-sm text-primary tracking-widest uppercase">NAVAL AEROSPACE</span></div></a><div class="hidden xl:flex items-center gap-space-sm pl-space-md border-l border-titanium-border/50 py-1"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-primary-container"></span></span><span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">SYS OPERATIONAL / DEFCON-1 READY</span></div></div><nav class="hidden lg:flex items-center gap-space-lg" data-active-classes="text-primary font-bold border-b-2 border-primary-container"><a class="font-label-md text-label-md tracking-wider text-on-surface-variant hover:text-tactical-white transition-colors py-2" data-path="about-us" href="#">기업 소개 (About Us)</a><a class="font-label-md text-label-md tracking-wider text-on-surface-variant hover:text-tactical-white transition-colors py-2" data-path="solutions" href="#">핵심 솔루션 (Solutions)</a><a class="font-label-md text-label-md tracking-wider text-on-surface-variant hover:text-tactical-white transition-colors py-2" data-path="autonomous-naval" href="#">자율해양 체계 (Autonomous Naval)</a><a class="font-label-md text-label-md tracking-wider text-on-surface-variant hover:text-tactical-white transition-colors py-2" data-path="global-alliances" href="#">글로벌 파트너십 (Global Alliances)</a><a class="font-label-md text-label-md tracking-wider text-on-surface-variant hover:text-tactical-white transition-colors py-2" data-path="news-ir" href="#">보도 및 공시 (News &amp; IR)</a></nav><div class="flex items-center gap-space-md"><a class="inline-flex items-center justify-center bg-primary-container text-on-primary font-label-md text-label-md uppercase tracking-wider px-space-md py-2.5 transition-all duration-200 hover:bg-tactical-white hover:shadow-[0_0_16px_rgba(0,229,255,0.5)] active:translate-y-0.5" data-path="contact-rfp" href="#">도입 및 사업 협력 문의 (RFP)</a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface-deep min-h-screen"><div class="flex flex-col w-full">
+<!-- HERO SECTION WITH CINEMATIC VISUAL -->
+<section class="relative w-full overflow-hidden bg-surface-deep">
+<!-- Background Hero Visual -->
+<div class="absolute inset-0 z-0">
+<img alt="K-Defense Striker-S autonomous naval stealth vessel navigating high-seas mission environment" class="w-full h-full object-cover object-center filter contrast-125 brightness-90 opacity-70" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPZSHhZlBQepSTE5A6WqAZkyI490VA22byZQVzaR8v2-D-nGFlVqEr_EoKk6KaBvDT5PUvf3BdRu-gy4uMhVUYlwH0ro7Zso4VEGZBSSbu7W0OslwT4x0M25AQQMLe53GpTR7W7tYnzCde4IBu_DheODoSTipjWzEK63-hXhIRWlkXXbOxz6Sr0m4de37tDJV75pPv_JwjgO-4PqdlXxmlzMH8CI1IJcsS9bNeMwhZ">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-deep via-surface-deep/75 to-surface-deep/30"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-surface-deep via-surface-deep/80 to-transparent"></div>
+<!-- Fine Telemetry Grid Overlay -->
+<div class="absolute inset-0 opacity-15 pointer-events-none" style="background-image: linear-gradient(to right, #1E3B66 1px, transparent 1px), linear-gradient(to bottom, #1E3B66 1px, transparent 1px); background-size: 64px 64px;"></div>
+</div>
+<!-- Hero Content Container -->
+<div class="relative z-10 w-full px-margin-mobile lg:px-margin pt-space-xl pb-24">
+<div class="max-w-6xl">
+<!-- Top Status Telemetry Tag -->
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-deck border border-titanium-border mb-space-md shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm tracking-widest text-primary uppercase">NEXT-GENERATION AUTONOMOUS MARITIME DEFENSE | 차세대 해양 안보 체계</span>
+</div>
+<!-- Hero Headline -->
+<h1 class="font-headline-xl text-headline-xl text-tactical-white tracking-tight uppercase max-w-4xl leading-tight mb-space-md">
+          바다의 미래를 재정의하는<br>
+<span class="text-primary-container">분산형 해양 타격</span> 및 자율방산 솔루션
+        </h1>
+<!-- Subtitle -->
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-3xl leading-relaxed mb-space-lg">
+          글로벌 해양 안보 위협과 해상교통로(SLOC) 보호를 위해, 첨단 인공지능 자율운항과 정밀 타격 모듈을 결합한 차세대 유·무인 복합전투(MUM-T) 솔루션을 제공합니다.
+        </p>
+<!-- CTA Cluster -->
+<div class="flex flex-wrap items-center gap-space-md mb-space-xl">
+<a class="inline-flex items-center justify-center gap-2 px-space-lg py-3.5 bg-primary-container text-surface-deep font-label-md text-label-md font-bold uppercase tracking-wider transition-all duration-200 hover:bg-tactical-white hover:shadow-[0_0_24px_rgba(0,229,255,0.6)]" href="#striker-s-system">
+<span>대표 체계 Striker-S 브리프 보기</span>
+<span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-space-lg py-3.5 bg-surface-deck/80 text-tactical-white font-label-md text-label-md uppercase tracking-wider border border-secondary transition-all duration-200 hover:bg-secondary/20 hover:border-primary-container" href="#capabilities">
+<span class="material-symbols-outlined text-[18px] text-primary">download</span>
+<span>핵심 역량서 다운로드 (Capability Statement)</span>
+</a>
+</div>
+<!-- Key Trust Metrics Ribbon -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-space-sm pt-space-md border-t border-titanium-border/60">
+<div class="p-space-md bg-surface-deck/70 border border-titanium-border/40 backdrop-blur-md">
+<div class="font-label-sm text-label-sm text-primary uppercase mb-1">PLATFORM SCALE</div>
+<div class="font-headline-md text-headline-md text-tactical-white font-bold">35m / 250t</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">첨단 중형 무인수상정(MUSV) 기술</div>
+</div>
+<div class="p-space-md bg-surface-deck/70 border border-titanium-border/40 backdrop-blur-md">
+<div class="font-label-sm text-label-sm text-status-go uppercase mb-1">MUM-T READINESS</div>
+<div class="font-headline-md text-headline-md text-tactical-white font-bold">LVL-4 AI</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">유·무인 복합 지휘통제(CMS) 연동</div>
+</div>
+<div class="p-space-md bg-surface-deck/70 border border-titanium-border/40 backdrop-blur-md">
+<div class="font-label-sm text-label-sm text-secondary uppercase mb-1">RADAR &amp; WEAPONS</div>
+<div class="font-headline-md text-headline-md text-tactical-white font-bold">AESA + MOD</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">자체 다기능 레이다 및 다목적 모듈</div>
+</div>
+<div class="p-space-md bg-surface-deck/70 border border-titanium-border/40 backdrop-blur-md">
+<div class="font-label-sm text-label-sm text-primary-fixed uppercase mb-1">INDUSTRIAL ALLIANCE</div>
+<div class="font-headline-md text-headline-md text-tactical-white font-bold">GLOBAL MRO</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">호주 H-ACE 연계 생산 인프라 확보</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: WHO WE ARE (CORPORATE IDENTITY) -->
+<section class="w-full bg-surface py-space-xl px-margin-mobile lg:px-margin border-t border-titanium-border">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col lg:flex-row gap-space-xl items-start">
+<!-- Left: Core Mission Statement -->
+<div class="lg:w-5/12 space-y-space-md">
+<div class="inline-flex items-center gap-2 px-2.5 py-1 bg-surface-container border border-titanium-border text-primary font-label-sm text-label-sm uppercase tracking-wider">
+            WHO WE ARE | 기업 정체성
+          </div>
+<h2 class="font-headline-lg text-headline-lg text-tactical-white tracking-tight leading-snug">
+            국가 해양 주권 수호와<br>
+<span class="text-primary">다영역 전장 주도권</span>을 확보하는 방산 테크 기업
+          </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+            전통적인 유인 함정 중심 해군력을 넘어, 자율 무인수상정(USV), 수중·공중 무인 복합체계 및 인공지능 지휘통제를 통합하는 대한민국 대표 방산 솔루션 기업입니다. 
+          </p>
+<div class="p-space-md bg-surface-submerged/40 border-l-2 border-primary-container text-on-surface font-body-md text-body-md leading-relaxed">
+            "우리는 전술적 우위와 장기 지속가능성을 보장하기 위해, 기술 독자성과 글로벌 동맹국과의 현지 파트너십을 일치시킵니다."
+          </div>
+</div>
+<!-- Right: 3 Core Identity Pillars -->
+<div class="lg:w-7/12 grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Pillar 1 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border flex flex-col justify-between hover:border-primary-container transition-colors">
+<div class="space-y-space-sm">
+<span class="font-label-sm text-label-sm text-primary tracking-widest uppercase">PILLAR 01</span>
+<div class="w-10 h-10 rounded bg-surface-submerged flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[24px]">directions_boat</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white">자율 해양 체계</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                중·소형 스텔스 무인수상정(USV)과 군집 자율 알고리즘을 통한 감시·타격 통합 수행.
+              </p>
+</div>
+<div class="pt-space-md text-label-sm font-label-sm text-outline uppercase tracking-wider">
+              SURFACE &amp; UNDERSEA
+            </div>
+</div>
+<!-- Pillar 2 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border flex flex-col justify-between hover:border-primary-container transition-colors">
+<div class="space-y-space-sm">
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase">PILLAR 02</span>
+<div class="w-10 h-10 rounded bg-surface-submerged flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]">radar</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white">AESA 레이다 및 CMS</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                다기능 능동위상배열(AESA) 센서와 유·무인 복합 교전통제 아키텍처 자체 완비.
+              </p>
+</div>
+<div class="pt-space-md text-label-sm font-label-sm text-outline uppercase tracking-wider">
+              SENSOR &amp; C2 SUITE
+            </div>
+</div>
+<!-- Pillar 3 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border flex flex-col justify-between hover:border-primary-container transition-colors">
+<div class="space-y-space-sm">
+<span class="font-label-sm text-label-sm text-status-go tracking-widest uppercase">PILLAR 03</span>
+<div class="w-10 h-10 rounded bg-surface-submerged flex items-center justify-center text-status-go">
+<span class="material-symbols-outlined text-[24px]">precision_manufacturing</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white">현지 제조 및 MRO</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                글로벌 거점(H-ACE 등) 기반의 주권형 생산, 즉각적 기술 이전 및 30년 후속 군수지원.
+              </p>
+</div>
+<div class="pt-space-md text-label-sm font-label-sm text-outline uppercase tracking-wider">
+              SOVEREIGN PRODUCTION
+            </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: OUR CORE STRENGTHS (4 KEY ADVANTAGES) -->
+<section class="w-full bg-surface-deep py-space-xl px-margin-mobile lg:px-margin border-t border-titanium-border" id="capabilities">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-space-lg">
+<div>
+<span class="font-label-sm text-label-sm text-primary tracking-widest uppercase">COMPETITIVE ADVANTAGE</span>
+<h2 class="font-headline-lg text-headline-lg text-tactical-white tracking-tight mt-1">
+            우리 기업의 4대 핵심 전략 강점
+          </h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md mt-2 md:mt-0">
+          현대 해전의 비대칭 안보 환경에서 가장 효율적이고 치명적인 대응 능력을 구현합니다.
+        </p>
+</div>
+<!-- 2x2 Tactical Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+<!-- Advantage 1 -->
+<div class="p-space-lg bg-surface-deck/80 border border-titanium-border relative overflow-hidden group hover:border-primary-container transition-all">
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-surface-submerged border border-titanium-border flex items-center justify-center font-label-sm text-primary font-bold">01</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">STRATEGIC LETHALITY</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[28px]">crisis_alert</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tactical-white mb-2">분산형 해양 거부 및 정밀 타격 역량</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+            초대형 유인 함정 중심의 집중 피격 위험을 분산하고, 250톤급 중형 무인수상정의 다수 배치로 적의 접근 차단 구역(A2/AD)을 무력화합니다. 대함 미사일 및 정밀 유도 탄약을 신속히 투발할 수 있는 비대칭 거부 전력입니다.
+          </p>
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>고비용 피격 리스크 극복 &amp; 분산형 화력 집중(Distributed Lethality)</span>
+</div>
+</div>
+<!-- Advantage 2 -->
+<div class="p-space-lg bg-surface-deck/80 border border-titanium-border relative overflow-hidden group hover:border-primary-container transition-all">
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-surface-submerged border border-titanium-border flex items-center justify-center font-label-sm text-secondary font-bold">02</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">AUTONOMOUS SENSOR SUITE</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[28px]">memory</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tactical-white mb-2">독자 개발 AESA 센서 및 AI 자율운항</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+            자체 설계된 X-밴드 다기능 AESA 레이다와 전자광학(EO/IR) 센서를 통합하여 해상 악천후에서도 표적을 자율 식별·추적합니다. 보안 규정이 엄격한 동맹국 연합작전 C4I 망과 완벽한 상호운용성을 제공합니다.
+          </p>
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-secondary">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>COLREGS 국제해상충돌예방규칙 완전 준수 AI 자율 충돌회피</span>
+</div>
+</div>
+<!-- Advantage 3 -->
+<div class="p-space-lg bg-surface-deck/80 border border-titanium-border relative overflow-hidden group hover:border-primary-container transition-all">
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-surface-submerged border border-titanium-border flex items-center justify-center font-label-sm text-status-go font-bold">03</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">MODULAR MULTI-MISSION</span>
+</div>
+<span class="material-symbols-outlined text-status-go text-[28px]">extension</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tactical-white mb-2">신속 전력화 가능한 모듈형 페이로드</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+            최대 10톤 규모의 표준 컨테이너형 무장 모듈을 탑재하여 임무에 따라 대함타격(ASuW), 대잠수함전(ASW 曳航 소나), 전자전 재밍(EW), 안티드론 요격 체계를 베이스 선체 개조 없이 즉각 플러그앤플레이로 교체합니다.
+          </p>
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-status-go">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>24시간 내 작전 성격 전환 가능한 표준 인터페이스 규격(STANAG)</span>
+</div>
+</div>
+<!-- Advantage 4 -->
+<div class="p-space-lg bg-surface-deck/80 border border-titanium-border relative overflow-hidden group hover:border-primary-container transition-all">
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-surface-submerged border border-titanium-border flex items-center justify-center font-label-sm text-primary-fixed font-bold">04</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">ALLIANCE INDUSTRIAL FOOTPRINT</span>
+</div>
+<span class="material-symbols-outlined text-primary-fixed text-[28px]">handshake</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tactical-white mb-2">글로벌 생산 인프라 &amp; 방산 동맹 네트워크</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+            호주 H-ACE(한화 기갑차량 생산시설)와 같은 현지 인프라 및 글로벌 조선 협력망을 통해 단순 완제품 수출이 아닌, 현지 파트너십 공동 건조, 정비(MRO), 부품 공급망 확보 및 신뢰도 높은 후속 군수지원을 보장합니다.
+          </p>
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-primary-fixed">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>오세아니아 및 인도-태평양 전략 축을 지원하는 신속 조달 역량</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: FEATURED SYSTEM SHOWCASE (Striker-S) -->
+<section class="w-full bg-surface py-space-xl px-margin-mobile lg:px-margin border-t border-titanium-border" id="striker-s-system">
+<div class="max-w-7xl mx-auto">
+<!-- Section Header -->
+<div class="mb-space-lg">
+<span class="font-label-sm text-label-sm text-primary tracking-widest uppercase">FLAGSHIP AUTONOMOUS COMBAT VESSEL</span>
+<h2 class="font-headline-lg text-headline-lg text-tactical-white tracking-tight mt-1">
+          대표 체계 쇼케이스 : Striker-S 무인 타격수상정
+        </h2><a class="inline-flex items-center gap-2 mt-4 px-4 py-2 border border-primary-container text-primary text-sm font-semibold hover:bg-primary-container/10" href="#striker-360">360° 3D 모델 바로 보기 ↘</a>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mt-1">
+          초대형 유인 함정 중심 해군의 한계를 돌파하는 비용 대비 압도적인 타격 효율성과 무인 생존성.
+        </p>
+</div>
+<!-- Main Showcase Container -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-stretch">
+<!-- Visual & Tactical HUD Diagram Card -->
+<div class="lg:col-span-7 bg-surface-deck border border-titanium-border flex flex-col justify-between overflow-hidden relative">
+<!-- Top HUD Header -->
+<div class="p-space-md border-b border-titanium-border flex items-center justify-between bg-surface-deep/60">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 bg-status-go rounded-full"></span>
+<span class="font-label-md text-label-md text-tactical-white font-bold tracking-wider">STRIKER-S // MUSV SPECIFICATION</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary px-2 py-0.5 bg-surface-submerged border border-titanium-border">STATUS: READY FOR VALIDATION</span>
+</div>
+<!-- Vessel Diagram Simulation -->
+<div class="p-space-lg flex flex-col items-center justify-center my-auto min-h-[320px] relative">
+<svg class="w-full max-w-lg h-auto text-primary" fill="none" stroke="currentColor" viewBox="0 0 600 240">
+<!-- Vessel Hull Wireframe -->
+<path class="text-primary-container" d="M 60 160 L 140 160 L 220 180 L 460 180 L 540 140 L 490 120 L 220 120 L 140 130 Z" stroke-width="2"></path>
+<!-- Superstructure Stealth Lines -->
+<path class="text-primary" d="M 240 120 L 280 60 L 370 60 L 400 120" stroke-dasharray="4,2" stroke-width="2"></path>
+<!-- Radar Mast / Sensor -->
+<line class="text-status-go" stroke-width="2" x1="330" x2="330" y1="60" y2="30"></line>
+<circle class="fill-status-go text-status-go" cx="330" cy="26" r="4"></circle>
+<path class="text-status-go opacity-70" d="M 315 20 A 20 20 0 0 1 345 20" stroke-width="1.5"></path>
+<!-- Missile Deck Hatch -->
+<rect class="text-secondary" height="24" stroke-width="1.5" width="70" x="180" y="130"></rect>
+<text class="font-label-sm text-[9px] fill-secondary stroke-none" x="185" y="146">VLS / ASuW</text>
+<!-- Telemetry Markings -->
+<circle class="fill-primary text-primary" cx="100" cy="150" r="3"></circle>
+<line class="text-outline" stroke-dasharray="2,2" stroke-width="1" x1="100" x2="100" y1="150" y2="100"></line>
+<text class="font-label-sm text-[10px] fill-on-surface-variant stroke-none" x="60" y="90">BOW HYDRO-DYNAMICS</text>
+<line class="text-outline" stroke-dasharray="2,2" stroke-width="1" x1="480" x2="520" y1="130" y2="80"></line>
+<text class="font-label-sm text-[10px] fill-on-surface-variant stroke-none" x="460" y="70">WATERJET PROPULSION</text>
+<line class="text-outline" stroke-dasharray="2,2" stroke-width="1" x1="330" x2="420" y1="40" y2="30"></line>
+<text class="font-label-sm text-[10px] fill-status-go stroke-none" x="430" y="34">INTEGRATED AESA / EO-IR</text>
+</svg>
+<div class="font-label-sm text-label-sm text-outline tracking-wider mt-4">
+              [ 35M COMPACT HIGH-SPEED STEALTH ARCHITECTURE / 250t DISPLACEMENT ]
+            </div>
+</div>
+<!-- Bottom Operational Highlights -->
+<div class="grid grid-cols-3 border-t border-titanium-border bg-surface-deep/80 divide-x divide-titanium-border">
+<div class="p-space-sm text-center">
+<div class="font-label-sm text-label-sm text-outline">MAX SPEED</div>
+<div class="font-headline-sm text-headline-sm text-primary font-bold">35+ KTS</div>
+</div>
+<div class="p-space-sm text-center">
+<div class="font-label-sm text-label-sm text-outline">OPERATIONAL RANGE</div>
+<div class="font-headline-sm text-headline-sm text-tactical-white font-bold">1,500 NM+</div>
+</div>
+<div class="p-space-sm text-center">
+<div class="font-label-sm text-label-sm text-outline">PAYLOAD CAPACITY</div>
+<div class="font-headline-sm text-headline-sm text-secondary font-bold">UP TO 10t</div>
+</div>
+</div>
+</div>
+<!-- Specifications Breakdown -->
+<div class="lg:col-span-5 flex flex-col justify-between space-y-space-md">
+<!-- Specification Modules -->
+<div class="p-space-md bg-surface-deck border border-titanium-border space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">straighten</span>
+<h4 class="font-headline-sm text-headline-sm text-tactical-white">플랫폼 규격 (Platform Architecture)</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              전장 35m, 전폭 6m, 250톤급 스텔스 형상 복합 선체 설계로 레이더 단면적(RCS)을 극소화하여 연안 및 원해 은밀 침투에 최적화되었습니다.
+            </p>
+</div>
+<div class="p-space-md bg-surface-deck border border-titanium-border space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">gps_fixed</span>
+<h4 class="font-headline-sm text-headline-sm text-tactical-white">주요 작전 임무 (Mission Profiles)</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              원거리 대함 정밀 타격(ASuW), 적 거점 해상 통제선 차단, 유인 기동전대 전방 첨병 정찰 및 미사일 유인 전자전 지원을 복합 수행합니다.
+            </p>
+</div>
+<div class="p-space-md bg-surface-deck border border-titanium-border space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-go text-[20px]">smart_toy</span>
+<h4 class="font-headline-sm text-headline-sm text-tactical-white">무인 철학 (Design Philosophy)</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              수조 원에 달하는 호위함의 피격 손실 우려를 불식시키며, 승조원 위험 부담 없이 고위험 전투 해역에 투입 가능한 '소모 가능한 치명성(Attritable Lethality)'을 완벽하게 구현합니다.
+            </p>
+</div>
+<!-- Bottom Action Box -->
+<div class="p-space-md bg-surface-submerged/60 border border-primary-container/40 flex items-center justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-primary uppercase">STRIKER-S TECHNICAL DOSSIER</div>
+<div class="font-body-sm text-body-sm text-tactical-white font-medium">상세 제원 및 무장 탑재 데이터시트</div>
+</div>
+<a class="px-3 py-2 bg-primary-container text-surface-deep font-label-sm text-label-sm uppercase font-bold hover:bg-tactical-white transition-colors" href="#contact">
+              RFP 접수
+            </a>
+</div>
+</div>
+</div>
+
+<div class="mt-10 border border-titanium-border bg-surface-deck overflow-hidden" id="striker-360">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-surface-deep/80 border-b border-titanium-border">
+<div><div class="text-primary tracking-[0.18em] text-xs font-bold uppercase">INTERACTIVE 3D EXHIBIT</div>
+<h3 class="text-tactical-white font-bold text-xl mt-1">STRIKER-S 360° 3D 탐색</h3>
+<p class="text-on-surface-variant text-sm mt-1">마우스로 회전·확대하고 정면·측면·조감 시점을 전환할 수 있습니다.</p></div>
+<a class="inline-flex items-center justify-center gap-2 border border-primary-container text-primary px-4 py-2 text-sm font-semibold hover:bg-primary-container/10" href="striker-s-360.html" rel="noopener" target="_blank">전체 화면으로 열기 ↗</a>
+</div>
+<iframe allowfullscreen="" loading="lazy" referrerpolicy="no-referrer" src="striker-s-360.html" style="width:100%;height:800px;border:0;display:block;background:#0b1117;" title="STRIKER-S 인터랙티브 360도 3D 모델"></iframe>
+<div class="px-5 py-3 border-t border-titanium-border text-on-surface-variant text-xs">본 3D 모델은 제공된 자료를 바탕으로 제작한 개념 전시용 모델이며 실제 상세 설계도와 다를 수 있습니다.</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5: GLOBAL STRATEGIC ROADMAP & TRUST -->
+<section class="w-full bg-surface-deep py-space-xl px-margin-mobile lg:px-margin border-t border-titanium-border">
+<div class="max-w-7xl mx-auto">
+<div class="text-center max-w-3xl mx-auto mb-space-xl">
+<span class="font-label-sm text-label-sm text-status-go tracking-widest uppercase">SOVEREIGN TRUST &amp; ROADMAP</span>
+<h2 class="font-headline-lg text-headline-lg text-tactical-white tracking-tight mt-1">
+          원칙에 기반한 단계적 신뢰 검증 체계
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">
+          과대포장된 청사진이 아닌, 철저한 해상 소요 분석부터 실선 실증, 동맹국 현지 생산까지 투명하고 검증된 4단계 프로세스를 약속합니다.
+        </p>
+</div>
+<!-- 4-Step Process Timeline Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Step 1 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border relative">
+<div class="font-label-lg text-label-lg text-primary font-bold mb-2">STEP 01</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white mb-2">소요 확인 및 작전 분석</h3>
+<span class="font-label-sm text-label-sm text-outline block mb-3">MISSION VALIDATION</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            고객 해군의 작전 교리, 해역 특성(연안/심해), 주요 위협 표적 시나리오를 심층 분석하여 최적 형상 및 무장 구성을 도출합니다.
+          </p>
+</div>
+<!-- Step 2 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border relative">
+<div class="font-label-lg text-label-lg text-secondary font-bold mb-2">STEP 02</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white mb-2">해상 실선 실증 시연</h3>
+<span class="font-label-sm text-label-sm text-outline block mb-3">SEA DEMONSTRATION</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            실제 해상 작전 환경에서 AI 자율 항해 신뢰성, AESA 센서 표적 식별 능력, 원격 지휘통제 데이터링크의 암호 보안성을 완벽 검증합니다.
+          </p>
+</div>
+<!-- Step 3 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border relative">
+<div class="font-label-lg text-label-lg text-status-go font-bold mb-2">STEP 03</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white mb-2">현지 생산망 구축</h3>
+<span class="font-label-sm text-label-sm text-outline block mb-3">SOVEREIGN CO-PRODUCTION</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            호주 H-ACE 및 동맹국 현지 파트너십을 통해 현지 건조 및 핵심 조립 공정을 현지화하여 국가 방위산업 자립도를 높입니다.
+          </p>
+</div>
+<!-- Step 4 -->
+<div class="p-space-lg bg-surface-deck border border-titanium-border relative">
+<div class="font-label-lg text-label-lg text-primary-fixed font-bold mb-2">STEP 04</div>
+<h3 class="font-headline-sm text-headline-sm text-tactical-white mb-2">생애주기 MRO 지원</h3>
+<span class="font-label-sm text-label-sm text-outline block mb-3">30-YEAR SUSTAINMENT</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            인공지능 예측 정비 체계와 상시 예비 부품 공급망을 운영하여 30년 이상의 작전 가동률 90% 이상을 유지 관리합니다.
+          </p>
+</div>
+</div>
+<!-- Trust Statement Quote -->
+<div class="mt-space-lg p-space-md bg-surface-deck/60 border border-titanium-border flex items-center justify-between flex-wrap gap-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[24px]">verified_user</span>
+<span class="font-body-md text-body-md text-tactical-white">
+            "검증된 기술력과 투명한 파트너십으로 글로벌 동맹국의 신뢰받는 해양 안보 파트너가 되겠습니다."
+          </span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline uppercase">ALLIANCE READY:</span>
+<span class="px-2 py-0.5 bg-surface-submerged text-primary font-label-sm text-label-sm border border-titanium-border">AUKUS PILLAR II ALIGNED</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 6: HIGH-IMPACT FINAL CTA -->
+<section class="w-full bg-surface py-space-xl px-margin-mobile lg:px-margin border-t border-titanium-border" id="contact">
+<div class="max-w-5xl mx-auto bg-gradient-to-b from-surface-deck to-surface-submerged/80 border border-titanium-border p-space-lg lg:p-space-xl relative overflow-hidden">
+<!-- Glow Decor -->
+<div class="absolute -right-20 -top-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-space-lg">
+<div class="space-y-space-sm max-w-xl">
+<div class="inline-flex items-center gap-2 font-label-sm text-label-sm text-primary uppercase tracking-widest">
+<span class="w-1.5 h-1.5 bg-primary-container rounded-full"></span>
+            DEFENSE PROCUREMENT &amp; ALLIANCE LIAISON
+          </div>
+<h2 class="font-headline-lg text-headline-lg text-tactical-white tracking-tight">
+            미래 해양 작전의 새로운 표준을 함께 수립하십시오
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            대한민국 해군 및 글로벌 동맹국 해양 안보 소요에 맞춘 기술 브리핑, 제안요청서(RFP) 검토 및 현지 사업 협력 문의를 신속하게 처리해 드립니다.
+          </p>
+<div class="flex items-center gap-2 text-outline font-label-sm text-label-sm pt-1">
+<span class="material-symbols-outlined text-[16px] text-status-go">lock</span>
+<span>국방기술보호법 및 안보 전략물자 관리 기준에 따라 모든 문의 사항은 암호화 보안 채널로 관리됩니다.</span>
+</div>
+</div>
+<div class="flex flex-col gap-3 w-full md:w-auto shrink-0">
+<a class="inline-flex items-center justify-center gap-2 px-space-lg py-4 bg-primary-container text-surface-deep font-label-md text-label-md font-bold uppercase tracking-wider hover:bg-tactical-white hover:shadow-[0_0_20px_rgba(0,229,255,0.7)] transition-all" href="mailto:comms@kdefense-navy.mil.kr">
+<span>사업 협력 및 RFP 접수</span>
+<span class="material-symbols-outlined text-[18px]">send</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-space-lg py-3 bg-surface-deep text-tactical-white font-label-sm text-label-sm uppercase tracking-wider border border-titanium-border hover:border-secondary transition-colors" href="tel:+820220387000">
+<span class="material-symbols-outlined text-[16px] text-secondary">phone_in_talk</span>
+<span>방산 전용 직통: 02-2038-7000</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-surface-deck border-t border-titanium-border/60 text-on-surface-variant"><div class="w-full px-margin-mobile lg:px-margin py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl"><div class="space-y-space-md"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-tactical-white tracking-wider uppercase font-bold">K-DEFENSE NAVY</span></div><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">대한민국 자주국방 역량과 차세대 유·무인 복합 체계(MUM-T)를 선도하는 주권 방위 및 첨단 해양 항공우주 방산 테크놀로지 기업입니다.</p><div class="flex flex-wrap gap-space-xs pt-space-xs"><span class="px-2 py-0.5 border border-titanium-border bg-surface-deep text-primary font-label-sm text-label-sm uppercase tracking-widest">DAPA CERTIFIED</span><span class="px-2 py-0.5 border border-titanium-border bg-surface-deep text-status-go font-label-sm text-label-sm uppercase tracking-widest">MIL-SPEC STD</span><span class="px-2 py-0.5 border border-titanium-border bg-surface-deep text-on-surface font-label-sm text-label-sm uppercase tracking-widest">ISO 27001 / 9001</span></div></div><div class="space-y-space-sm"><h3 class="font-label-lg text-label-lg uppercase tracking-wider text-tactical-white border-b border-titanium-border/40 pb-space-xs">SEOUL HEADQUARTERS</h3><p class="font-body-sm text-body-sm text-on-surface-variant">대한민국 서울특별시 용산구 이태원로 국방테크놀로지 타워 18-22F</p><p class="font-label-sm text-label-sm text-primary tracking-wide">TEL: +82 (02) 2038-7000</p><p class="font-label-sm text-label-sm text-on-surface-variant tracking-wide">SECURE DISPATCH: comms@kdefense-navy.mil.kr</p></div><div class="space-y-space-sm"><h3 class="font-label-lg text-label-lg uppercase tracking-wider text-tactical-white border-b border-titanium-border/40 pb-space-xs">CANBERRA DEFENSE ALLIANCE OFFICE</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Level 7, Sovereign Defense Precinct, Constitution Avenue, Canberra ACT 2601, Australia</p><p class="font-label-sm text-label-sm text-secondary tracking-wide">TEL: +61 (02) 6124-9000</p><p class="font-label-sm text-label-sm text-on-surface-variant tracking-wide">AUSTRALASIA LIAISON: oceania@kdefense-navy.mil.kr</p></div><div class="space-y-space-sm"><h3 class="font-label-lg text-label-lg uppercase tracking-wider text-tactical-white border-b border-titanium-border/40 pb-space-xs">COMPLIANCE &amp; SECURITY</h3><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">방위산업기술보호법 및 국가안보 전략물자 수출관리 지침을 엄격히 준수하며 모든 무기체계 기술 자료는 암호화 전송됩니다.</p><div class="flex flex-col gap-1 font-label-sm text-label-sm text-outline"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-status-go">verified_user</span> SECURITY CLEARANCE GRADE A-1</span><span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-primary">shield</span> DISA &amp; MND DEFENSE LEVEL COMPLIANT</span></div></div></div><div class="pt-space-md border-t border-titanium-border/40 flex flex-col md:flex-row items-center justify-between gap-space-md"><p class="font-label-sm text-label-sm text-outline tracking-wider">© 2025 K-DEFENSE NAVAL AEROSPACE LTD. ALL RIGHTS RESERVED. SOVEREIGN DEFENSE CAPABILITY ARCHITECTURE.</p><div class="flex items-center gap-space-md font-label-sm text-label-sm text-outline"><a class="hover:text-primary transition-colors" data-path="legal-notice" href="#">보안 관리 규정 (Security Policy)</a><a class="hover:text-primary transition-colors" data-path="procurement-compliance" href="#">방산 컴플라이언스 (Defense Compliance)</a><a class="hover:text-primary transition-colors" data-path="contact-rfp" href="#">제안요청서 접수 (RFP Portal)</a></div></div></div></footer>
+</body></html>
